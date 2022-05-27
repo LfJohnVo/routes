@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Calle;
 use App\Models\Conductore;
+use App\Models\Resultado;
 use Illuminate\Http\Request;
 
 class RutaController extends Controller
@@ -19,12 +20,10 @@ class RutaController extends Controller
         $basess = 0;
         $streets = Calle::get();
         $conductores = Conductore::get();
+        $resultados = Resultado::get();
         $funciones = new RutaController;
-
         $pares = array();
         $impares = array();
-        $resultado = collect();
-        $resultadoPares = collect();
 
 
         foreach ($streets as $street) {
@@ -43,41 +42,62 @@ class RutaController extends Controller
             $longitud = strlen($conductor->nombre);
             $vocales = $funciones->contarVocalesConsonantes($conductor->nombre, $longitud)['vocales'];
             $consonantes = $funciones->contarVocalesConsonantes($conductor->nombre, $longitud)['consonantes'];
+            $basess = $vocales + ($vocales * 0.5);
 
             foreach ($pares as $par) {
                 $calle = $par[0];
                 $boolP = $par[1];
-                $basess = $vocales + ($vocales * 0.5);
-                $funciones->calculoCincuenta($longitud, $calle, $conductor->nombre, $basess, $resultado);
-                $funciones->calculoPares($conductor->nombre, $basess, $pares, $resultado, $resultadoPares);
+                $funciones->calculoCincuenta($longitud, $calle, $conductor->nombre, $basess, $resultados);
             }
+
+            $funciones->calculoPares($conductor->nombre, $basess, $pares, $resultados);
         }
 
-        dd($resultado, $resultadoPares);
+        $dataTabla = $resultados->unique('calle')->unique('conductor')->sortByDesc('basess');
 
+        return view('welcome', compact('dataTabla'));
     }
 
-    public function calculoPares($conductor, $basess, $pares, $resultado, $resultadoPares)
+    public function calculoPares($conductor, $ss, $pares, $resultado)
     {
-        for($i= 0; $i < count($pares); $i++){
-            echo $resultado;
-            if (!$resultado->contains('calle', $pares[$i][0])) {
+        for ($i = 0; $i < count($pares); $i++) {
+            $calle = $pares[$i][0];
+            $data[] = [
+                'calle' => $calle, 'conductor' => $conductor, 'ss' => $ss,
+            ];
+            $consulta = $resultado->where('calle', $calle);
 
-                // if (!$resultadoPares->contains('calle', $pares[$i][0]) && !$resultadoPares->contains('calle', $pares[$i][0])) {
-                //     $resultadoPares->push(array('calle' => $pares[$i][0], 'conductor' => $conductor, 'ss' => $basess));
-                // }
+            if ($consulta->count() == 0) {
+                Resultado::insert($data);
+            } else {
+                foreach($consulta as $item) {
+                    if ($item->calle != $calle) {
+                        Resultado::insert($data);
+                        //echo $item->calle . '<br>';
+                    }
+                }
             }
         }
     }
 
-    public function calculoCincuenta($longitud, $calle, $conductor, $ss, $resultado){
+    public function calculoCincuenta($longitud, $calle, $conductor, $ss, $resultados)
+    {
         if ($longitud == strlen($calle)) {
             if (strlen($calle) <= 19 && strlen($calle) >= 10) {
                 if ($boolP = 1) {
-                    $resultado->push(collect(array("calle" => $calle, "conductor" => $conductor, "ss" => $ss)));
-                    unset($resultado[1]);
-                } else {
-                    $basess = 0;
+                    $data[] = [
+                        "calle" => $calle, "conductor" => $conductor, "ss" => $ss,
+                    ];
+                    $consulta = $resultados->where('calle', $calle);
+                    if ($consulta->count() == 0) {
+                        Resultado::insert($data);
+                    } else {
+                        foreach ($consulta as $res) {
+                            if ($res->ss < $ss) {
+                                Resultado::where('calle', $calle)->update(['calle' => $calle, 'conductor' => $conductor, 'ss' => $ss]);
+                            }
+                        }
+                    }
                 }
             }
         }
