@@ -23,12 +23,12 @@ class RutaController extends Controller
 
         $pares = array();
         $impares = array();
-        $resultado = array();
+        $resultado = collect();
+        $resultadoPares = collect();
 
 
         foreach ($streets as $street) {
             $parImpar = $funciones->parImpar(strlen($street->street));
-
             switch ($parImpar) {
                 case 0:
                     array_push($impares, array($street->street, $parImpar));
@@ -43,37 +43,44 @@ class RutaController extends Controller
             $longitud = strlen($conductor->nombre);
             $vocales = $funciones->contarVocalesConsonantes($conductor->nombre, $longitud)['vocales'];
             $consonantes = $funciones->contarVocalesConsonantes($conductor->nombre, $longitud)['consonantes'];
-            //echo "El nombre del conductor es: " . $conductor->nombre . " y tiene " . $vocales . " vocales y " . $consonantes . " consonantes " .  $longitud . " Longitud <br>";
 
             foreach ($pares as $par) {
                 $calle = $par[0];
                 $boolP = $par[1];
-
-                if ($longitud == strlen($calle)) {
-                    if (strlen($calle) <= 19 && strlen($calle) >= 10) {
-                        if ($boolP = 1) {
-
-
-
-                            $basess = $vocales + ($vocales * 0.5);
-                            array_push($resultado, array($calle, $conductor->nombre, $basess));
-                        } else {
-                            $basess = 0;
-                        }
-                    }
-                    //termina comprobar longitudes con calles
-                } else {
-                    //impar
-
-                }
+                $basess = $vocales + ($vocales * 0.5);
+                $funciones->calculoCincuenta($longitud, $calle, $conductor->nombre, $basess, $resultado);
+                $funciones->calculoPares($conductor->nombre, $basess, $pares, $resultado, $resultadoPares);
             }
         }
 
-        echo "<pre>";
-        var_dump($resultado);
-        echo "</pre>";
+        dd($resultado, $resultadoPares);
 
-        dd('RutaController');
+    }
+
+    public function calculoPares($conductor, $basess, $pares, $resultado, $resultadoPares)
+    {
+        for($i= 0; $i < count($pares); $i++){
+            echo $resultado;
+            if (!$resultado->contains('calle', $pares[$i][0])) {
+
+                // if (!$resultadoPares->contains('calle', $pares[$i][0]) && !$resultadoPares->contains('calle', $pares[$i][0])) {
+                //     $resultadoPares->push(array('calle' => $pares[$i][0], 'conductor' => $conductor, 'ss' => $basess));
+                // }
+            }
+        }
+    }
+
+    public function calculoCincuenta($longitud, $calle, $conductor, $ss, $resultado){
+        if ($longitud == strlen($calle)) {
+            if (strlen($calle) <= 19 && strlen($calle) >= 10) {
+                if ($boolP = 1) {
+                    $resultado->push(collect(array("calle" => $calle, "conductor" => $conductor, "ss" => $ss)));
+                    unset($resultado[1]);
+                } else {
+                    $basess = 0;
+                }
+            }
+        }
     }
 
     public function contarVocalesConsonantes($cadena, $longitud)
